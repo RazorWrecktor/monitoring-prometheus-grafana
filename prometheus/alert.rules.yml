@@ -1,0 +1,80 @@
+groups:
+  - name: system_alerts
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "Prometheus cannot scrape metrics from {{ $labels.job }}"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 90
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is > 90% for 1 minute"
+
+      - alert: LowDiskSpace
+        expr: node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Less than 10% disk space remaining."
+
+      - alert: MSSQLDown
+        expr: up{job="mssql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SQL Server down on {{ $labels.instance }}"
+          description: "No metrics received from SQL Server."
+
+      - alert: NGINXDown
+        expr: up{job="nginx"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NGINX not responding"
+          description: "NGINX exporter is not available."
+
+      - alert: WebsiteDown
+        expr: probe_success == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Website down: {{ $labels.instance }}"
+          description: "Blackbox probe failed. Site unreachable or non-200 status."
+
+      - alert: SSLCertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 7
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL certificate expiring soon ({{ $labels.instance }})"
+          description: "The SSL cert for {{ $labels.instance }} expires in less than 7 days."
+
+      - alert: MemoryUsageHigh
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "High memory usage"
+          description: "More than 90% memory used"
+
+      - alert: ContainerRestartingTooOften
+        expr: rate(container_restart_count[5m]) > 1
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "Container {{ $labels.name }} is restarting"
+          description: "Frequent container restarts detected"
